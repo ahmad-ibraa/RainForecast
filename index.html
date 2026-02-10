@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>NJ HRRR Forecast Dashboard</title>
+    <title>Rainfall Forecast Dashboard (HRRR Forecasting System)</title>
+    <subtitle>Center for Natural Resources</subtitle>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: sans-serif; margin: 40px; background: #f4f4f9; }
@@ -36,7 +37,7 @@
         <div id="lastRunTimestamp" class="last-run"></div>
     </div>
 
-    <script>
+        <script>
         let forecastData = {};
         let myChart;
 
@@ -45,17 +46,14 @@
             .then(json => {
                 const banner = document.getElementById('statusBanner');
                 
-                // 1. Handle the "Processing" status
                 if (json.status === "processing") {
                     banner.innerHTML = "⚠️ New forecast data is currently being generated.";
                     banner.className = "processing";
                     banner.style.display = "block";
                 }
 
-                // 2. Point to the nested data wrapper
                 forecastData = json.data; 
                 
-                // Show last run time
                 if(json.last_run) {
                     document.getElementById('lastRunTimestamp').innerText = "Last update: " + new Date(json.last_run).toLocaleString();
                 }
@@ -63,7 +61,6 @@
                 const select = document.getElementById('citySelect');
                 select.innerHTML = '';
                 
-                // Populate Dropdown from forecastData
                 const cities = Object.keys(forecastData).sort();
                 cities.forEach(city => {
                     let opt = document.createElement('option');
@@ -72,12 +69,7 @@
                     select.appendChild(opt);
                 });
 
-                // Initial Chart
                 initChart(cities[0]);
-            })
-            .catch(err => {
-                console.error("Error loading JSON:", err);
-                document.getElementById('citySelect').innerHTML = '<option>Error loading data</option>';
             });
 
         function initChart(city) {
@@ -85,21 +77,47 @@
             const cityData = forecastData[city];
 
             myChart = new Chart(ctx, {
-                type: 'line',
+                type: 'bar', // Changed from 'line' to 'bar'
                 data: {
                     labels: cityData.times.map(t => new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})),
                     datasets: [
-                        { label: 'Max (100th)', data: cityData.p100, borderColor: 'red', backgroundColor: 'rgba(255,0,0,0.1)', fill: false },
-                        { label: '75th Percentile', data: cityData.p75, borderColor: 'orange', fill: false },
-                        { label: 'Median (50th)', data: cityData.p50, borderColor: 'blue', fill: false }
+                        { 
+                            label: 'Median (50th)', 
+                            data: cityData.p50, 
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)', // Blue
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 1
+                        },
+                        { 
+                            label: '75th Percentile', 
+                            data: cityData.p75, 
+                            backgroundColor: 'rgba(255, 159, 64, 0.7)', // Orange
+                            borderColor: 'rgb(255, 159, 64)',
+                            borderWidth: 1
+                        },
+                        { 
+                            label: 'Max (100th)', 
+                            data: cityData.p100, 
+                            backgroundColor: 'rgba(255, 99, 132, 0.7)', // Red
+                            borderColor: 'rgb(255, 99, 132)',
+                            borderWidth: 1
+                        }
                     ]
                 },
                 options: { 
                     responsive: true,
-                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
                     scales: { 
-                        y: { beginAtZero: true, title: { display: true, text: 'Precipitation (Inches)' } },
-                        x: { title: { display: true, text: 'Local Time' } }
+                        y: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Precipitation (Inches)' } 
+                        },
+                        x: { 
+                            title: { display: true, text: 'Local Time' } 
+                        }
                     }
                 }
             });
@@ -111,9 +129,9 @@
             if (!cityData) return;
 
             myChart.data.labels = cityData.times.map(t => new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
-            myChart.data.datasets[0].data = cityData.p100;
+            myChart.data.datasets[0].data = cityData.p50;
             myChart.data.datasets[1].data = cityData.p75;
-            myChart.data.datasets[2].data = cityData.p50;
+            myChart.data.datasets[2].data = cityData.p100;
             myChart.update();
         }
     </script>
