@@ -9,10 +9,11 @@
         .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         
         h2 { margin-top: 0; color: #1a1a1a; margin-bottom: 5px; }
-        .subtitle { color: #007bff; font-weight: bold; font-size: 1.1em; margin-bottom: 25px; display: block; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+        /* Updated branding color to e2242c */
+        .subtitle { color: #e2242c; font-weight: bold; font-size: 1.1em; margin-bottom: 25px; display: block; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
         
         .chart-section { margin-bottom: 50px; }
-        h3 { font-size: 1.2em; color: #444; margin-bottom: 15px; border-left: 4px solid #007bff; padding-left: 10px; }
+        h3 { font-size: 1.2em; color: #444; margin-bottom: 15px; border-left: 4px solid #e2242c; padding-left: 10px; }
         
         select { padding: 12px; width: 100%; margin-bottom: 20px; font-size: 16px; border-radius: 6px; border: 1px solid #ccc; background-color: #fff; cursor: pointer; }
         
@@ -28,7 +29,7 @@
         .processing { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
         
         .last-run { font-size: 0.85em; color: #777; margin-top: 20px; text-align: right; font-style: italic; }
-        canvas { max-height: 450px; }
+        canvas { max-height: 450px; width: 100% !important; }
     </style>
 </head>
 <body>
@@ -43,7 +44,6 @@
             <h3>Statewide Overview: Max Potential Rainfall (All Cities)</h3>
             <p style="font-size: 0.9em; color: #666; margin-bottom: 20px;">
                 This scatter plot shows the 100th percentile (Max) forecast for every city. 
-                Overlap indicates higher model consensus for heavy rain at that time.
             </p>
             <canvas id="statewideScatterChart"></canvas>
         </div>
@@ -52,7 +52,7 @@
 
         <div class="chart-section">
             <h3>Local Forecast Detail</h3>
-            <p style="font-size: 0.9em; color: #666;">Select a city to view the probability spread (50th, 75th, and 100th percentiles).</p>
+            <p style="font-size: 0.9em; color: #666;">Select a city to view the probability spread.</p>
             <select id="citySelect" onchange="updateCityChart()">
                 <option value="">Loading Cities...</option>
             </select>
@@ -74,7 +74,6 @@
                 
                 const banner = document.getElementById('statusBanner');
                 
-                // 1. Alert if generating, but still proceed to use the data in the file
                 if (json.status === "processing") {
                     banner.innerHTML = "⚠️ A new forecast is being generated. Showing previous results in the meantime.";
                     banner.className = "processing";
@@ -92,7 +91,6 @@
                 const select = document.getElementById('citySelect');
                 const cities = Object.keys(forecastData).sort();
                 
-                // Populate Dropdown
                 select.innerHTML = '';
                 cities.forEach(city => {
                     let opt = document.createElement('option');
@@ -101,7 +99,6 @@
                     select.appendChild(opt);
                 });
 
-                // Initialize both charts
                 initScatterChart(cities);
                 initCityChart(cities[0]);
 
@@ -110,54 +107,41 @@
             }
         }
 
+        // Helper to format timestamps to readable local time
+        function formatTime(t) {
+            return new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+
         function initScatterChart(cities) {
             const ctx = document.getElementById('statewideScatterChart').getContext('2d');
             const datasets = [];
 
-            // Group all city maxes into the scatter plot
             cities.forEach(city => {
                 const cityData = forecastData[city];
                 datasets.push({
                     label: city,
-                    data: cityData.times.map((t, i) => ({
-                        x: i, // Use index for alignment with time labels
-                        y: cityData.p100[i]
-                    })),
-                    backgroundColor: 'rgba(0, 123, 255, 0.25)', // Semi-transparent blue
-                    borderColor: 'rgba(0, 123, 255, 0.5)',
-                    pointRadius: 5,
-                    pointHoverRadius: 8
+                    data: cityData.p100.map((val, i) => ({ x: i, y: val })),
+                    backgroundColor: 'rgba(226, 36, 44, 0.2)', // Using your branding red with transparency
+                    borderColor: 'rgba(226, 36, 44, 0.5)',
+                    pointRadius: 4
                 });
             });
 
-            // Get time labels from the first city
-            const timeLabels = forecastData[cities[0]].times.map(t => 
-                new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-            );
+            const labels = forecastData[cities[0]].times.map(t => formatTime(t));
 
             scatterChart = new Chart(ctx, {
                 type: 'scatter',
                 data: { datasets: datasets },
                 options: {
                     responsive: true,
-                    plugins: { 
-                        legend: { display: false }, // Hide legend to save space
-                        tooltip: {
-                            callbacks: {
-                                label: (item) => `${item.dataset.label}: ${item.raw.y.toFixed(2)}"`
-                            }
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
                         x: { 
                             type: 'category', 
-                            labels: timeLabels,
-                            title: { display: true, text: 'Forecast Hour (Local Time)' }
+                            labels: labels,
+                            title: { display: true, text: 'Time' }
                         },
-                        y: { 
-                            beginAtZero: true, 
-                            title: { display: true, text: 'Max Precip (Inches)' } 
-                        }
+                        y: { beginAtZero: true, title: { display: true, text: 'Max Precip (In)' } }
                     }
                 }
             });
@@ -170,19 +154,17 @@
             cityChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: data.times.map(t => new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})),
+                    labels: data.times.map(t => formatTime(t)),
                     datasets: [
-                        { label: 'Median (50th)', data: data.p50, backgroundColor: 'rgba(54, 162, 235, 0.7)', borderWidth: 1 },
-                        { label: '75th Percentile', data: data.p75, backgroundColor: 'rgba(255, 159, 64, 0.7)', borderWidth: 1 },
-                        { label: 'Max (100th)', data: data.p100, backgroundColor: 'rgba(255, 99, 132, 0.7)', borderWidth: 1 }
+                        { label: 'Median (50th)', data: data.p50, backgroundColor: 'rgba(54, 162, 235, 0.7)' },
+                        { label: '75th Percentile', data: data.p75, backgroundColor: 'rgba(255, 159, 64, 0.7)' },
+                        { label: 'Max (100th)', data: data.p100, backgroundColor: 'rgba(226, 36, 44, 0.7)' }
                     ]
                 },
                 options: { 
                     responsive: true,
-                    plugins: { tooltip: { mode: 'index', intersect: false } },
                     scales: { 
-                        y: { beginAtZero: true, title: { display: true, text: 'Inches' } },
-                        x: { title: { display: true, text: 'Local Time' } }
+                        y: { beginAtZero: true, title: { display: true, text: 'Inches' } } 
                     }
                 }
             });
@@ -193,17 +175,14 @@
             const data = forecastData[city];
             if (!data) return;
 
-            cityChart.data.labels = data.times.map(t => new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+            cityChart.data.labels = data.times.map(t => formatTime(t));
             cityChart.data.datasets[0].data = data.p50;
             cityChart.data.datasets[1].data = data.p75;
             cityChart.data.datasets[2].data = data.p100;
             cityChart.update();
         }
 
-        // Run the dashboard on load
         loadDashboard();
-
-        // Refresh page every 10 minutes to check for new data
         setTimeout(() => { location.reload(); }, 600000);
     </script>
 </body>
