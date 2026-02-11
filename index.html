@@ -115,46 +115,53 @@
             return new Date(t).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         }
 
+        // Helper to generate distinct colors for each region
+        function getColor(index, total) {
+            const hue = (index * (360 / total)) % 360;
+            return `hsl(${hue}, 70%, 50%)`;
+        }
+
         function initLineChart(cities) {
             const ctx = document.getElementById('statewideLineChart').getContext('2d');
             const datasets = [];
 
-            cities.forEach((city) => {
+            cities.forEach((city, index) => {
                 const cityData = forecastData[city];
+                const color = getColor(index, cities.length); // Unique color per city
+
                 datasets.push({
                     label: city,
                     data: cityData.p100, 
-                    borderColor: 'rgba(226, 36, 44, 0.4)', // Branding red
+                    borderColor: color,      // Now distinct!
+                    backgroundColor: color,  // For the legend/tooltip
                     borderWidth: 2,
-                    pointRadius: 0,        // Hides the dots
-                    pointHoverRadius: 5,   // Shows dot only on hover
-                    fill: false,           // Ensures it's a line, not a shape
-                    tension: 0.4,          // Smooths the line
-                    showLine: true         // Explicitly forces the line
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    fill: false,
+                    tension: 0.4,
+                    showLine: true
                 });
             });
 
             const labels = forecastData[cities[0]].times.map(t => formatTime(t));
 
-            // If a chart already exists, destroy it before re-creating
-            if (statewideChart) {
-                statewideChart.destroy();
-            }
+            if (statewideChart) statewideChart.destroy();
 
             statewideChart = new Chart(ctx, {
-                type: 'line', // This must be 'line'
+                type: 'line',
                 data: { labels: labels, datasets: datasets },
                 options: {
                     responsive: true,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
                     plugins: { 
-                        legend: { display: false }
+                        legend: { 
+                            display: true, // Re-enabled so you can see which color is which
+                            position: 'bottom',
+                            labels: { boxWidth: 12, font: { size: 10 } }
+                        },
+                        tooltip: { mode: 'index', intersect: false }
                     },
                     scales: {
-                        x: { display: true, title: { display: true, text: 'Time' } },
+                        x: { title: { display: true, text: 'Time' } },
                         y: { beginAtZero: true, title: { display: true, text: 'Inches' } }
                     }
                 }
