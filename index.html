@@ -162,7 +162,11 @@
                     },
                     scales: {
                         x: { title: { display: true, text: 'Time' } },
-                        y: { beginAtZero: true, title: { display: true, text: 'Inches' } }
+                        y: { 
+                            beginAtZero: true, 
+                            suggestedMax: 0.1, // Forces at least 0.1 on the scale
+                            title: { display: true, text: 'Inches' } 
+                        }
                     }
                 }
             });
@@ -186,7 +190,13 @@
                 options: { 
                     responsive: true,
                     plugins: { title: { display: true, text: 'Expected Rainfall Spread' } },
-                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Inches per Hour' } } }
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            suggestedMax: 0.1, // Prevents tiny values from looking huge
+                            title: { display: true, text: 'Inches per Hour' } 
+                        } 
+                    }
                 }
             });
         }
